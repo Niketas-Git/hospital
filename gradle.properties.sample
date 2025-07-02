@@ -1,0 +1,19 @@
+# Gradle properties
+
+quarkusPluginId=io.quarkus
+quarkusPluginVersion=3.15.1
+quarkusPlatformGroupId=io.quarkus.platform
+quarkusPlatformArtifactId=quarkus-bom
+quarkusPlatformVersion=3.15.1
+
+# jOOQ properties
+jooqDialect=mariadb
+jooqDatasourceDriverClassName=org.mariadb.jdbc.Driver
+jooqDatasourceUrl=jdbc:mariadb://<IP>:<PORT>/<SCHEMA>
+jooqDatasourceUsername=<USER>
+jooqDatasourcePassword=<PASSWD>
+jooqInputSchema=<SCHEMA>
+
+# runtime config
+appHost=localhost
+appPort=9076

@@ -1,0 +1,144 @@
+plugins {
+    id 'java'
+    id 'io.quarkus'
+    id 'nu.studer.jooq' version '9.0'
+    id 'eclipse'
+}
+
+processResources {
+    expand(project.properties)
+    filesMatching('application.properties') {
+        expand(project.properties)
+    }
+    exclude '**/templates/*'
+    exclude '**/META-INF/*'
+    exclude 'logback.xml'
+    exclude 'logback.xml.sample'
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+    implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
+    // implementation 'io.quarkiverse.qute.web:quarkus-qute-web'
+    implementation 'io.quarkiverse.jooq:quarkus-jooq:2.1.0'
+    implementation 'io.quarkus:quarkus-jdbc-mariadb'
+    implementation 'io.quarkus:quarkus-arc'
+
+    testImplementation 'io.quarkus:quarkus-junit5'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine'
+
+    implementation 'com.googlecode.lanterna:lanterna:3.1.2'
+	
+    // slf4j-classic, flexible and 'real'
+    implementation 'ch.qos.logback:logback-classic:1.4.11' 
+
+    // slf4j-quarkus integration
+    // implementation 'io.quarkus:quarkus-logging-slf4j'
+    // optional: if JSON-logs are preferred
+    // implementation 'io.quarkus:quarkus-logging-json'
+
+    if(jooqDialect == 'mariadb') {
+        implementation 'io.quarkus:quarkus-jdbc-mariadb'
+        
+        // jOOQ - database connection dependencies
+        // versions definied by io.quarkus:quarkus-jdbc-mariadb
+        implementation 'org.mariadb.jdbc:mariadb-java-client'
+        jooqGenerator 'org.mariadb.jdbc:mariadb-java-client:3.3.3'
+    }
+
+}
+
+
+task printProps {
+    doLast {
+        println "All project properties:"
+        project.properties.each { key, value ->
+            println "$key = $value"
+        }
+    }
+}
+
+group = 'de.projekt29'
+version = '1.0.0-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+test {
+    systemProperty "java.util.logging.manager", "org.jboss.logmanager.LogManager"
+}
+compileJava {
+    options.encoding = 'UTF-8'
+    options.compilerArgs << '-parameters'
+}
+
+compileTestJava {
+    options.encoding = 'UTF-8'
+}
+
+quarkusDev {
+    doFirst {
+        System.setProperty("debug", "5066") // fpr debug port
+    }
+}
+
+jooq {
+    // use same version as io.quarkiverse.jooq:quarkus-jooq
+    version = '3.19.1'
+    edition = nu.studer.gradle.jooq.JooqEdition.OSS
+    configurations {
+        main {
+            generateSchemaSourceOnCompilation = true
+
+            generationTool {
+                logging = org.jooq.meta.jaxb.Logging.WARN
+                jdbc {
+                    driver = jooqDatasourceDriverClassName
+                    url = jooqDatasourceUrl
+                    user = jooqDatasourceUsername
+                    password = jooqDatasourcePassword
+                    properties {
+                        property {
+                            key = 'ssl'
+                            value = 'false'
+                        }
+                    }
+                }
+                generator {
+                    /*
+                    name = 'org.jooq.codegen.DefaultGeneratorStrategy'
+                    strategy {
+                        // use the custom generator strategy
+                        name = 'de.projekt29.pso2.srv.utils.SampleGeneratorStrategy'
+                    }
+                    */
+
+                    strategy.name = 'org.jooq.codegen.DefaultGeneratorStrategy'
+                    database {
+                        inputSchema = jooqInputSchema
+                        outputSchemaToDefault = true
+                        // excludes = 'type_.*|my_table.column|my_other_table'
+                        includeExcludeColumns = true
+                    }
+                    generate {
+                        relations = true
+                        pojos = true
+                        daos = true
+                        records = true
+                    }
+                    target {
+                        packageName = 'de.projekt29.fpr.dao.jooq'
+                        directory = 'build/generated-src/jooq/main'
+                    }
+                }
+            }
+        }
+    }
+}
